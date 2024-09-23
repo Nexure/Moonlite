@@ -1,0 +1,3 @@
+[submodule "Moonlite/Serializer"]
+	path = Moonlite/Serializer
+	url = https://github.com/paradoxum-games/moon-serializer
