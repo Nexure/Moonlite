@@ -48,6 +48,7 @@ MoonTrack.__index = MoonTrack
 local CONSTANT_INTERPS = {
 	["Instance"] = true,
 	["boolean"] = true,
+	["string"] = true,
 	["nil"] = true,
 }
 
@@ -58,6 +59,7 @@ export type MoonTrack = typeof(setmetatable({} :: {
 	Frames: number,
 	FrameRate: number,
 	TimePosition: number,
+	RestoreDefaults: boolean,
 
 	_completed: BindableEvent,
 	_locks: MoonElementLocks,
@@ -468,33 +470,33 @@ local function compileItem(self: MoonTrack, item: MoonAnimItem, targets: MoonTar
 				end
 			end
 		end
-	else
-		local props = {}
+	end
 
-		for i, prop in frame:GetChildren() do
-			if not prop:IsA("Folder") or prop == markerTrack then
-				continue
-			end
+	local props = {}
 
-			local default: any = prop:FindFirstChild("default")
-			local name = prop.Name
-
-			if default then
-				default = readValue(default)
-			end
-
-			props[name] = {
-				Default = default,
-				Static = Specials.Static(target, name),
-				Sequence = unpackKeyframes(prop),
-			}
+	for i, prop in frame:GetChildren() do
+		if not prop:IsA("Folder") or prop == markerTrack or prop.Name == "Rig" then
+			continue
 		end
 
-		targets[target] = {
-			Props = props,
-			Target = target,
+		local default: any = prop:FindFirstChild("default")
+		local name = prop.Name
+
+		if default then
+			default = readValue(default)
+		end
+
+		props[name] = {
+			Default = default,
+			Static = Specials.Static(target, name),
+			Sequence = unpackKeyframes(prop),
 		}
 	end
+
+	targets[target] = {
+		Props = props,
+		Target = target,
+	}
 
 	if markerTrack then
 		local markers = {}
@@ -671,9 +673,11 @@ local function restoreTrack(self: MoonTrack)
 		return
 	end
 
-	for instance, props in defaults do
-		for name, value in props do
-			setPropValue(self, instance, name, value)
+	if self.RestoreDefaults then
+		for instance, props in defaults do
+			for name, value in props do
+				setPropValue(self, instance, name, value)
+			end
 		end
 	end
 
@@ -742,6 +746,7 @@ function Moonlite.CreatePlayer(save: StringValue, root: Instance?): MoonTrack
 		Looped = data.Information.Looped,
 		Frames = data.Information.Length,
 		FrameRate = data.Information.FPS or 60,
+		RestoreDefaults = true,
 		TimePosition = 0,
 
 		_save = save,
